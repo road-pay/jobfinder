@@ -1,29 +1,45 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\JobController; // <--- Penting: Kita panggil Controller Job di sini
+use App\Http\Controllers\JobController; 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Job; 
 
+// AREA PUBLIK
 Route::get('/', function () {
-    return view('welcome');
+    $jobs = Job::latest();
+    if (request('q')) {
+        $jobs->where('title', 'like', '%' . request('q') . '%');
+    }
+    return view('welcome', ['jobs' => $jobs->paginate(10)]);
 });
 
-// Grup Rute yang butuh Login
+// AREA KHUSUS MEMBER
 Route::middleware(['auth', 'verified'])->group(function () {
     
-    // 1. Dashboard (Menampilkan daftar lowongan dari JobController)
-    Route::get('/dashboard', [JobController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', function () {
+        $jobs = Job::where('user_id', Auth::id())->latest()->paginate(10); 
+        return view('dashboard', ['jobs' => $jobs]);
+    })->name('dashboard');
 
-    // 2. Buat Lowongan Baru (Tampilkan Form)
+    // CRUD JOBS
     Route::get('/jobs/create', [JobController::class, 'create'])->name('jobs.create');
-
-    // 3. Simpan Lowongan (Proses Kirim Data)
     Route::post('/jobs', [JobController::class, 'store'])->name('jobs.store');
+    Route::get('/jobs/{job}/edit', [JobController::class, 'edit'])->name('jobs.edit');
+    
+    // PERBAIKAN: Gunakan patch agar sesuai dengan form @method('PATCH')
+    Route::patch('/jobs/{job}', [JobController::class, 'update'])->name('jobs.update'); 
+    
+    Route::delete('/jobs/{job}', [JobController::class, 'destroy'])->name('jobs.destroy');
 
-    // Fitur Profil Bawaan Breeze
+    // Profil
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+// DETAIL (Wajib paling bawah)
+Route::get('/jobs/{job}', [JobController::class, 'show'])->name('jobs.show');
 
 require __DIR__.'/auth.php';

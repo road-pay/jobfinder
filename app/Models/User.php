@@ -45,4 +45,12 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    // --- BAGIAN INI YANG KITA TAMBAHKAN ---
+    // Fungsi ini memberitahu Laravel bahwa: "Satu User bisa punya banyak Job"
+    public function jobs()
+    {
+        return $this->hasMany(Job::class);
+    }
+    // ---------------------------------------
 }
